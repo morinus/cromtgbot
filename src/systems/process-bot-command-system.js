@@ -22,7 +22,10 @@ function process(msg) {
             processFetchCardImage(msg);
             break;
         case "!cijena":
-            //processFetchCardPriceSystem(msg);
+            // TODO: processFetchCardPriceSystem(msg);
+            break;
+        case "!legalnost":
+            // TODO: processFetchCardLegality(msg);
             break;
         default:
             break;
