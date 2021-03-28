@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const token = require("./config.json");
 const validateCommand = require("./src/validations/validate-command.js");
-const processBotCommandSystem = require("./src/systems/process-bot-command-system.js");
+const processBotCommandSystem = require("./src/systems/process-bot-command-system.js").default;
 
 const client = new Discord.Client();
 

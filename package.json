@@ -1,9 +1,11 @@
 {
+  "scripts": {
+    "start" : "node app.js"
+  },
   "dependencies": {
-    "discord": "^0.8.2",
     "discord.js": "^12.5.1",
-    "mocha": "^8.3.2",
     "npm": "^7.7.0",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6"
   }
 }

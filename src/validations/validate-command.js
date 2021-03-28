@@ -23,4 +23,4 @@ function isValid(msg) {
     return isValid;
 }
 
-module.exports = { isValid }
+module.exports = { isValid };

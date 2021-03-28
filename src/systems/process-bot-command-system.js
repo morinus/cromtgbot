@@ -1,17 +1,22 @@
-const request = require('request');
+const request = require('request-promise');
 
-function processFetchCardImage(msg) {
+async function processFetchCardImage(msg) {
     const cardName = msg.content.substr(msg.content.indexOf(' ') + 1, msg.content.length - 1);
+    const response = await request.get(("https://api.scryfall.com/cards/named?fuzzy={" + cardName + '}'));
+    const responseJson = JSON.parse(response);
 
-    request("https://api.scryfall.com/cards/named?fuzzy={" + cardName + '}', function (error, response, body) {
-        if (error != null) {
-            console.log(error);
-            return;
-        }
+    if (responseJson.object == 'error')
+    {
+        msg.channel.send(responseJson['details']);
+        return;
+    }
 
-        const cardJson = JSON.parse(body);
-        msg.channel.send(cardJson['image_uris']['border_crop']);
-    });
+    const hasBorderCropImage = responseJson['image_uris']['border_crop'] != undefined;
+    if (hasBorderCropImage) {
+        msg.channel.send(responseJson['image_uris']['border_crop']);
+    } else {
+        msg.channel.send(responseJson['image_uris']['png']);
+    }
 }
 
 function process(msg) {
@@ -32,4 +37,4 @@ function process(msg) {
     }
 }
 
-module.exports = { process }
+module.exports = { process };
