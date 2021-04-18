@@ -1,4 +1,5 @@
 const request = require('request-promise');
+const config = require('../../config.json');
 
 
 async function getCardData(msg) {
@@ -16,11 +17,25 @@ async function getCardData(msg) {
     }
 }
 
+async function getCurrencyExchangeRate() {
+    try {
+        const response = await request.get(("https://currencyapi.net/api/v1/rates?key=" + config.CURRENCYAPI_API_KEY));
+        const data = JSON.parse(response);
+
+        return data;
+    }
+    catch (err) {
+        // TODO: Error handling
+        return undefined;
+    }
+}
+
 async function processFetchCardImage(msg) {
     const cardData = await getCardData(msg);
 
     if (cardData == undefined) return;
 
+    // Some cards don't have defined border cropped image so we print the regular .png image
     const hasBorderCropImage = cardData['image_uris']['border_crop'] != undefined;
     if (hasBorderCropImage) {
         msg.channel.send(cardData['image_uris']['border_crop']);
@@ -29,10 +44,30 @@ async function processFetchCardImage(msg) {
     }
 }
 
+function getIsLegalDiscordEmoticon(legality) {
+    const isLegal = 'legal';
+
+    return legality == isLegal ? ":white_check_mark:" : ":no_entry:";
+}
+
 async function processFetchCardLegality(msg) {
     const cardData = await getCardData(msg);
 
     if (cardData == undefined) return;
+
+    const standardLegality = getIsLegalDiscordEmoticon(cardData.legalities.standard);
+    const pioneerLegality = getIsLegalDiscordEmoticon(cardData.legalities.pioneer);
+    const modernLegality = getIsLegalDiscordEmoticon(cardData.legalities.modern);
+    const legacyLegality = getIsLegalDiscordEmoticon(cardData.legalities.legacy);
+    const pauperLegality = getIsLegalDiscordEmoticon(cardData.legalities.pauper);
+
+    msg.channel.send(
+        "Legalnost karte:\n" +
+        standardLegality + " Standard\n" +
+        pioneerLegality + " Pioneer\n" + 
+        modernLegality + " Modern\n" +
+        legacyLegality + " Legacy\n" +
+        pauperLegality + " Pauper");
 }
 
 async function processFetchCardPrice(msg) {
@@ -40,13 +75,20 @@ async function processFetchCardPrice(msg) {
 
     if (cardData == undefined) return;
 
-    // TODO: Fetch current EUR/HRK
-    //       optimize output
-    const euroToHrk = 7.57;
-    const euroPrice = cardData.prices.eur;
-    const hrkPrice = (euroPrice * euroToHrk).toFixed(2);
+    // Free plan from currencyapi.net allows 1250 requests per month
+    // Free plan allows only USD as base currency so we need to 
+    // calculate HRK from response manually
+    const data = await getCurrencyExchangeRate();
 
-    msg.channel.send("Trenutna cijena: \n```" + hrkPrice + " HRK" + "(" + euroPrice + " EUR)```");
+    if (data == undefined) return;
+
+    const usdToEurRate = data.rates.EUR;
+    const usdToHrkRate = data.rates.HRK;
+    const eurToHrkRate = usdToHrkRate / usdToEurRate;
+    const euroPrice = cardData.prices.eur;
+    const hrkPrice = (euroPrice * eurToHrkRate).toFixed(2);
+
+    msg.channel.send("Trenutna cijena: \n```" + hrkPrice + " HRK" + " (" + euroPrice + " EUR)```");
 }
 
 function process(msg) {
@@ -54,12 +96,15 @@ function process(msg) {
 
     switch (botCommand) {
         case "!karta":
+        case "!k":
             processFetchCardImage(msg);
             break;
         case "!legalnost":
+        case "!l":
             processFetchCardLegality(msg);
             break;
         case "!cijena":
+        case "!c":
             processFetchCardPrice(msg);
             break;
         default:
