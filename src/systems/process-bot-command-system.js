@@ -1,22 +1,52 @@
 const request = require('request-promise');
 
-async function processFetchCardImage(msg) {
+
+async function getCardData(msg) {
     const cardName = msg.content.substr(msg.content.indexOf(' ') + 1, msg.content.length - 1);
-    const response = await request.get(("https://api.scryfall.com/cards/named?fuzzy={" + cardName + '}'));
-    const responseJson = JSON.parse(response);
 
-    if (responseJson.object == 'error')
-    {
-        msg.channel.send(responseJson['details']);
-        return;
+    try {
+        const response = await request.get(("https://api.scryfall.com/cards/named?fuzzy={" + cardName + '}'));
+        const data = JSON.parse(response);
+
+        return data;
     }
+    catch (err) {
+        // TODO: Error handling
+        return undefined;
+    }
+}
 
-    const hasBorderCropImage = responseJson['image_uris']['border_crop'] != undefined;
+async function processFetchCardImage(msg) {
+    const cardData = await getCardData(msg);
+
+    if (cardData == undefined) return;
+
+    const hasBorderCropImage = cardData['image_uris']['border_crop'] != undefined;
     if (hasBorderCropImage) {
-        msg.channel.send(responseJson['image_uris']['border_crop']);
+        msg.channel.send(cardData['image_uris']['border_crop']);
     } else {
-        msg.channel.send(responseJson['image_uris']['png']);
+        msg.channel.send(cardData['image_uris']['png']);
     }
+}
+
+async function processFetchCardLegality(msg) {
+    const cardData = await getCardData(msg);
+
+    if (cardData == undefined) return;
+}
+
+async function processFetchCardPrice(msg) {
+    const cardData = await getCardData(msg);
+
+    if (cardData == undefined) return;
+
+    // TODO: Fetch current EUR/HRK
+    //       optimize output
+    const euroToHrk = 7.57;
+    const euroPrice = cardData.prices.eur;
+    const hrkPrice = (euroPrice * euroToHrk).toFixed(2);
+
+    msg.channel.send("Trenutna cijena: \n```" + hrkPrice + " HRK" + "(" + euroPrice + " EUR)```");
 }
 
 function process(msg) {
@@ -26,11 +56,11 @@ function process(msg) {
         case "!karta":
             processFetchCardImage(msg);
             break;
-        case "!cijena":
-            // TODO: processFetchCardPriceSystem(msg);
-            break;
         case "!legalnost":
-            // TODO: processFetchCardLegality(msg);
+            processFetchCardLegality(msg);
+            break;
+        case "!cijena":
+            processFetchCardPrice(msg);
             break;
         default:
             break;
